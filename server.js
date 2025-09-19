@@ -88,7 +88,7 @@ wss.on("connection", function connection(ws, req) {
     const processName = msg.processName || msg.ProcessName;
     const moneyOrderMessage = moneyOrderMessages[processName];
     if (moneyOrderMessage) {
-      ws.send(moneyOrderMessage(ws));
+      moneyOrderMessage(ws);
     }
   });
 });

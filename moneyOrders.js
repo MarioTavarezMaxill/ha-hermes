@@ -1,13 +1,11 @@
 const moneyOrderPrinters = [
-  [
-    {
-      ErrorCode: 0,
-      Conection: true,
-      ErrorDescription: "",
-      Type: "moneyorder",
-      DeviceName: "SATO WS412",
-    },
-  ],
+  {
+    ErrorCode: 0,
+    Conection: true,
+    ErrorDescription: "",
+    Type: "moneyorder",
+    DeviceName: "SATO WS412",
+  },
 ];
 
 const listPrintersConnect = (ws) => {
@@ -32,7 +30,9 @@ const printMo = (ws) => {
   ws.send(JSON.stringify(response));
 };
 
-export const moneyOrderMessages = {
-  ListPrintersConnect: listPrintersConnect,
-  PrintMo: printMo,
+module.exports = {
+  moneyOrderMessages: {
+    ListPrintersConnect: listPrintersConnect,
+    PrintMo: printMo,
+  },
 };
