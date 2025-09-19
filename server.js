@@ -1,6 +1,7 @@
 const WebSocket = require("ws");
 const http = require("http");
 const fs = require("fs");
+const { moneyOrderMessages } = require("./moneyOrders");
 
 const server = http.createServer((req, res) => {
   res.writeHead(404);
@@ -10,7 +11,6 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ noServer: true });
 
 wss.on("connection", function connection(ws, req) {
-
   ws.on("message", async function incoming(message) {
     const msg = JSON.parse(message);
 
@@ -18,21 +18,20 @@ wss.on("connection", function connection(ws, req) {
     const environments = {
       "https://ssoqa.mylabs.mx": [
         "https://hermes-api-qa.mylabs.mx/api/settings/hardware_agent_version",
-        "https://hermes-qa.mylabs.mx/"
-      ],//qa
+        "https://hermes-qa.mylabs.mx/",
+      ], //qa
       "https://sso.mylabs.mx": [
         "https://hermes-api-dev.mylabs.mx/api/settings/hardware_agent_version",
         "https://hermes-dev.mylabs.mx/",
-        "2L292L28D5JCDefault string"
-      ],//dev,
+        "2L292L28D5JCDefault string",
+      ], //dev,
       "https://sso.maxilabs.net": [
         "https://hermes-api-stg.maxilabs.net/api/settings/hardware_agent_version",
-        "https://hermes-stg.maxilabs.net/"
-      ],//stage
-      "https://ssohotfix.maxilabs.net": "hotfix",//hotfix
-      "https://ssobugfix.maxilabs.net": "bugfix",//bugfix
+        "https://hermes-stg.maxilabs.net/",
+      ], //stage
+      "https://ssohotfix.maxilabs.net": "hotfix", //hotfix
+      "https://ssobugfix.maxilabs.net": "bugfix", //bugfix
     };
-
 
     if (msg.processName === "GetParametersConfigurationLogin") {
       const data = require("./data.json");
@@ -50,21 +49,18 @@ wss.on("connection", function connection(ws, req) {
     if (msg.processName === "GetVersion") {
       const token = msg.tokenAppId;
 
-      const versionResponse = await fetch(
-        environments[urlReferer][0],
-        {
-          headers: {
-            authorizer: token,
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-site",
-            Referer: environments[urlReferer][1],
-            "Referrer-Policy": "strict-origin-when-cross-origin",
-          },
-          body: null,
-          method: "GET",
-        }
-      );
+      const versionResponse = await fetch(environments[urlReferer][0], {
+        headers: {
+          authorizer: token,
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "same-site",
+          Referer: environments[urlReferer][1],
+          "Referrer-Policy": "strict-origin-when-cross-origin",
+        },
+        body: null,
+        method: "GET",
+      });
       const versionJson = await versionResponse.json();
       const version = versionJson.data.version;
 
@@ -78,7 +74,6 @@ wss.on("connection", function connection(ws, req) {
       }
       fs.writeFileSync("./data.json", JSON.stringify(jsonFile));
 
-
       const response = {
         status: 2000,
         message: null,
@@ -86,8 +81,14 @@ wss.on("connection", function connection(ws, req) {
         data: {
           version,
         },
-      }
+      };
       ws.send(JSON.stringify(response));
+    }
+
+    const processName = msg.processName || msg.ProcessName;
+    const moneyOrderMessage = moneyOrderMessages[processName];
+    if (moneyOrderMessage) {
+      ws.send(moneyOrderMessage(ws));
     }
   });
 });
@@ -100,7 +101,8 @@ server.on("upgrade", function upgrade(request, socket, head) {
     pathname === "/Configuration" ||
     pathname === "/Connection" ||
     pathname === "/Terminal" ||
-    pathname === "/Printer"
+    pathname === "/Printer" ||
+    pathname === "/MoneyOrder"
   ) {
     wss.handleUpgrade(request, socket, head, function done(ws) {
       wss.emit("connection", ws, request);
